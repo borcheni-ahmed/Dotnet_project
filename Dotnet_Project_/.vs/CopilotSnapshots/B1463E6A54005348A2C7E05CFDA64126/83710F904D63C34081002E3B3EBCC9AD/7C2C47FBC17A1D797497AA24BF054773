@@ -1,0 +1,15 @@
+﻿
+using BIProject.Entities.Oltp;
+using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
+
+namespace BIProject.Data.Oltp
+{
+    public class OltpDbContext : DbContext
+    {
+        public OltpDbContext(DbContextOptions<OltpDbContext> options) : base(options) { }
+
+        public DbSet<Client> Clients { get; set; }
+        public DbSet<Facture> Factures { get; set; }
+    }
+}

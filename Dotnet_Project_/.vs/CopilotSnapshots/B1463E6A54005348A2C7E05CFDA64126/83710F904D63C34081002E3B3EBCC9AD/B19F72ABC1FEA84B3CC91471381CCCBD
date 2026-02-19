@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- No external package references required for this workspace. Add PackageReference
+       entries here only when package restore is available. -->
+
+  <!-- Optional: enable Swagger by setting the EnableSwagger MSBuild property to true
+       (or define the ENABLE_SWAGGER constant). When enabled, the Swashbuckle package
+       will be referenced and Swagger middleware will be compiled into the app. -->
+  <PropertyGroup>
+    <EnableSwagger>false</EnableSwagger>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableSwagger)' == 'true'">
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="**\*.cs" Condition="'$(EnableSwagger)' != 'true'" />
+  </ItemGroup>
+
+  <!-- Define a compilation constant when EnableSwagger is true -->
+  <PropertyGroup Condition="'$(EnableSwagger)' == 'true'">
+    <DefineConstants>$(DefineConstants);ENABLE_SWAGGER</DefineConstants>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,19 @@
+﻿
+// If you have real entity classes, replace the BIProject namespace below
+// or add a reference to the project that contains them.
+using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
+using Dotnet_Project.ExternalStubs; // provide local stubs if EF Core packages aren't restored
+
+namespace BIProject.Data.Oltp
+{
+    public class OltpDbContext : DbContext
+    {
+        public OltpDbContext(DbContextOptions<OltpDbContext> options) : base(options) { }
+
+        // Replace `Client` and `Facture` with your actual entity types.
+        // For now, use simple placeholder types to avoid missing-type errors.
+        public DbSet<object> Clients { get; set; }
+        public DbSet<object> Factures { get; set; }
+    }
+}

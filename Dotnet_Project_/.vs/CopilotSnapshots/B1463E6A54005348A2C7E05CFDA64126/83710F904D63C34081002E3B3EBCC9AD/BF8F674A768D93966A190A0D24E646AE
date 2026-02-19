@@ -1,0 +1,21 @@
+﻿var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+// OpenAPI/Swagger setup removed to avoid requiring external package references in this workspace.
+// To re-enable, add a Swagger package (for example Swashbuckle.AspNetCore) and restore packages,
+// then call `builder.Services.AddEndpointsApiExplorer()` and `builder.Services.AddSwaggerGen()`.
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+// Swagger middleware disabled because the project does not reference a Swagger package.
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
