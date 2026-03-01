@@ -43,11 +43,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="ExternalStubs\" />
-    <Folder Include="Security\" />
-  </ItemGroup>
-
   <!-- No compile file removals. All source files are always compiled; Swagger is enabled
        only via the ENABLE_SWAGGER constant and the conditional PackageReference above. -->
 

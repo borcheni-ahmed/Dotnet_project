@@ -1,5 +1,4 @@
-﻿
-using Dotnet_Project.Data.DataWarehouse;
+﻿using Dotnet_Project.Data.DataWarehouse;
 using Dotnet_Project.DTOs.Analytics;
 using Dotnet_Project.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -19,23 +18,27 @@ namespace Dotnet_Project.Repositories.Implementations
             int? year = null,
             int? month = null)
         {
+       
             var query = _context.FactSales
-                .Include(f => f.DimDate)
+                .Join(_context.DimDates,
+                    f => f.DateKey,
+                    d => d.DateKey,
+                    (f, d) => new { f, d })
                 .AsQueryable();
 
             if (year.HasValue)
-                query = query.Where(f => f.DimDate.Year == year.Value);
+                query = query.Where(x => x.d.Year == year.Value);
 
             if (month.HasValue)
-                query = query.Where(f => f.DimDate.Month == month.Value);
+                query = query.Where(x => x.d.Month == month.Value);
 
             var result = await query
-                .GroupBy(f => new
+                .GroupBy(x => new
                 {
-                    f.DimDate.Year,
-                    f.DimDate.Month,
-                    f.DimDate.MonthName,
-                    f.DimDate.Quarter
+                    x.d.Year,
+                    x.d.Month,
+                    x.d.MonthName,
+                    x.d.Quarter
                 })
                 .Select(g => new SalesByPeriodDto
                 {
@@ -43,10 +46,10 @@ namespace Dotnet_Project.Repositories.Implementations
                     Month = g.Key.Month,
                     MonthName = g.Key.MonthName,
                     Quarter = g.Key.Quarter,
-                    TotalSales = g.Sum(f => f.TotalAmount),
+                    TotalSales = g.Sum(x => x.f.TotalAmount),
                     TotalOrders = g.Count(),
-                    AverageOrderValue = g.Average(f => f.TotalAmount),
-                    TotalProfit = g.Sum(f => f.LineProfit ?? 0)
+                    AverageOrderValue = g.Average(x => x.f.TotalAmount),
+                    TotalProfit = g.Sum(x => x.f.LineProfit ?? 0)
                 })
                 .OrderBy(s => s.Year)
                 .ThenBy(s => s.Month)
@@ -57,23 +60,27 @@ namespace Dotnet_Project.Repositories.Implementations
 
         public async Task<IEnumerable<SalesByProductDto>> GetSalesByProductAsync(int topN = 10)
         {
+            
             var result = await _context.FactSales
-                .Include(f => f.DimProduct)
-                .Where(f => f.DimProduct.IsCurrent)
-                .GroupBy(f => new
+                .Join(_context.DimProducts,
+                    f => f.ProductKey,
+                    p => p.ProductKey,
+                    (f, p) => new { f, p })
+                .Where(x => x.p.IsCurrent)
+                .GroupBy(x => new
                 {
-                    f.DimProduct.ProductName,
-                    f.DimProduct.Brand
+                    x.p.ProductName,
+                    x.p.Brand
                 })
                 .Select(g => new SalesByProductDto
                 {
                     ProductName = g.Key.ProductName,
                     Brand = g.Key.Brand,
-                    Category = "N/A", // Ajoutez si vous avez cette info
-                    QuantitySold = g.Sum(f => f.Quantity),
-                    TotalRevenue = g.Sum(f => f.TotalAmount),
-                    TotalProfit = g.Sum(f => f.LineProfit ?? 0),
-                    AveragePrice = g.Average(f => f.UnitPrice)
+                    Category = "N/A",
+                    QuantitySold = g.Sum(x => x.f.Quantity),
+                    TotalRevenue = g.Sum(x => x.f.TotalAmount),
+                    TotalProfit = g.Sum(x => x.f.LineProfit ?? 0),
+                    AveragePrice = g.Average(x => x.f.UnitPrice)
                 })
                 .OrderByDescending(p => p.TotalRevenue)
                 .Take(topN)
@@ -84,15 +91,22 @@ namespace Dotnet_Project.Repositories.Implementations
 
         public async Task<IEnumerable<SalesByCustomerDto>> GetSalesByCustomerAsync(int topN = 10)
         {
+            
             var result = await _context.FactSales
-                .Include(f => f.DimCustomer)
-                .Include(f => f.DimDate)
-                .Where(f => f.DimCustomer.IsCurrent)
-                .GroupBy(f => new
+                .Join(_context.DimCustomers,
+                    f => f.CustomerKey,
+                    c => c.CustomerKey,
+                    (f, c) => new { f, c })
+                .Join(_context.DimDates,
+                    x => x.f.DateKey,
+                    d => d.DateKey,
+                    (x, d) => new { x.f, x.c, d })
+                .Where(x => x.c.IsCurrent)
+                .GroupBy(x => new
                 {
-                    f.DimCustomer.CustomerName,
-                    f.DimCustomer.CityName,
-                    f.DimCustomer.Country
+                    x.c.CustomerName,
+                    x.c.CityName,
+                    x.c.Country
                 })
                 .Select(g => new SalesByCustomerDto
                 {
@@ -100,9 +114,9 @@ namespace Dotnet_Project.Repositories.Implementations
                     City = g.Key.CityName,
                     Country = g.Key.Country,
                     TotalOrders = g.Count(),
-                    TotalSpent = g.Sum(f => f.TotalAmount),
-                    AverageOrderValue = g.Average(f => f.TotalAmount),
-                    LastPurchaseDate = g.Max(f => f.DimDate.FullDate)
+                    TotalSpent = g.Sum(x => x.f.TotalAmount),
+                    AverageOrderValue = g.Average(x => x.f.TotalAmount),
+                    LastPurchaseDate = g.Max(x => x.d.FullDate)
                 })
                 .OrderByDescending(c => c.TotalSpent)
                 .Take(topN)
@@ -115,29 +129,31 @@ namespace Dotnet_Project.Repositories.Implementations
             DateTime? startDate = null,
             DateTime? endDate = null)
         {
-            var query = _context.FactSales
-                .Include(f => f.DimDate)
-                .AsQueryable();
+           
+            var query = _context.FactSales.AsQueryable();
 
-            if (startDate.HasValue)
-                query = query.Where(f => f.DimDate.FullDate >= startDate.Value);
+            if (startDate.HasValue || endDate.HasValue)
+            {
+               
+                var dateFilteredKeys = _context.DimDates.AsQueryable();
 
-            if (endDate.HasValue)
-                query = query.Where(f => f.DimDate.FullDate <= endDate.Value);
+                if (startDate.HasValue)
+                    dateFilteredKeys = dateFilteredKeys.Where(d => d.FullDate >= startDate.Value);
+
+                if (endDate.HasValue)
+                    dateFilteredKeys = dateFilteredKeys.Where(d => d.FullDate <= endDate.Value);
+
+                var validDateKeys = dateFilteredKeys.Select(d => d.DateKey);
+                query = query.Where(f => validDateKeys.Contains(f.DateKey));
+            }
 
             var totalRevenue = await query.SumAsync(f => f.TotalAmount);
             var totalProfit = await query.SumAsync(f => f.LineProfit ?? 0);
             var totalOrders = await query.CountAsync();
-            var totalCustomers = await query
-                .Select(f => f.CustomerKey)
-                .Distinct()
-                .CountAsync();
-            var totalProducts = await query
-                .Select(f => f.ProductKey)
-                .Distinct()
-                .CountAsync();
+            var totalCustomers = await query.Select(f => f.CustomerKey).Distinct().CountAsync();
+            var totalProducts = await query.Select(f => f.ProductKey).Distinct().CountAsync();
 
-            var kpis = new KPIsDto
+            return new KPIsDto
             {
                 TotalRevenue = totalRevenue,
                 TotalProfit = totalProfit,
@@ -149,34 +165,37 @@ namespace Dotnet_Project.Repositories.Implementations
                 StartDate = startDate,
                 EndDate = endDate
             };
-
-            return kpis;
         }
 
         public async Task<IEnumerable<SalesTrendDto>> GetSalesTrendAsync(int months = 12)
         {
+          
             var raw = await _context.FactSales
-                .Include(f => f.DimDate)
-                .GroupBy(f => new
+                .Join(_context.DimDates,
+                    f => f.DateKey,
+                    d => d.DateKey,
+                    (f, d) => new { f, d })
+                .GroupBy(x => new
                 {
-                    f.DimDate.Year,
-                    f.DimDate.Month,
-                    f.DimDate.MonthName
+                    x.d.Year,
+                    x.d.Month,
+                    x.d.MonthName
                 })
                 .Select(g => new
                 {
                     g.Key.Year,
                     g.Key.Month,
                     g.Key.MonthName,
-                    Revenue = g.Sum(f => f.TotalAmount),
+                    Revenue = g.Sum(x => x.f.TotalAmount),
                     Orders = g.Count(),
-                    Profit = g.Sum(f => f.LineProfit ?? 0)
+                    Profit = g.Sum(x => x.f.LineProfit ?? 0)
                 })
                 .OrderByDescending(x => x.Year)
                 .ThenByDescending(x => x.Month)
                 .Take(months)
                 .ToListAsync();
 
+            
             var result = raw
                 .OrderBy(x => x.Year)
                 .ThenBy(x => x.Month)
@@ -194,17 +213,23 @@ namespace Dotnet_Project.Repositories.Implementations
 
         public async Task<IEnumerable<SalesByCountryDto>> GetSalesByCountryAsync()
         {
+            
             var result = await _context.FactSales
-                .Include(f => f.DimCustomer)
-                .Where(f => f.DimCustomer.IsCurrent)
-                .GroupBy(f => f.DimCustomer.Country)
+                .AsNoTracking()
+                .Join(_context.DimCustomers,
+                    f => f.CustomerKey,
+                    c => c.CustomerKey,
+                    (f, c) => new { f, c })
+                .Where(x => x.c.IsCurrent)
+                .GroupBy(x => x.c.Country)
                 .Select(g => new SalesByCountryDto
                 {
                     Country = g.Key ?? "Unknown",
-                    TotalRevenue = g.Sum(f => f.TotalAmount),
+                    TotalRevenue = g.Sum(x => x.f.TotalAmount),
                     TotalOrders = g.Count()
                 })
                 .OrderByDescending(c => c.TotalRevenue)
+                //.Take(20)
                 .ToListAsync();
 
             return result;

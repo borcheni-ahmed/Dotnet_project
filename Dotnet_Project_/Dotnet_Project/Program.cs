@@ -14,10 +14,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configuration des DbContext
 builder.Services.AddDbContext<OltpDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("OltpConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("OltpConnection"),
+        sqlOptions => sqlOptions.CommandTimeout(300) 
+    )
+);
 
 builder.Services.AddDbContext<DwDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DwConnection")));
+     options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DWConnection"),
+        sqlOptions => sqlOptions.CommandTimeout(300) 
+    ));
+    
 
 // Repository Pattern
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();

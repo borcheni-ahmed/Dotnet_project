@@ -23,10 +23,12 @@ namespace Dotnet_Project.Entities.Oltp
 
         [Required]
         [StringLength(50)]
-        public string Role { get; set; } // "Admin" ou "User"
+        public string Role { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public bool IsActive { get; set; } = true;
+
+       
     }
 }

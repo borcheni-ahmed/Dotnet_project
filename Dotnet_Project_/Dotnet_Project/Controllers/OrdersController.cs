@@ -114,7 +114,7 @@ namespace Dotnet_Project.Controllers
         /// Créer une nouvelle commande
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<ActionResult<OrderDto>> CreateOrder([FromBody] OrderDto orderDto)
         {
             if (!ModelState.IsValid)
@@ -154,7 +154,7 @@ namespace Dotnet_Project.Controllers
         /// Modifier une commande
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> UpdateOrder(int id, [FromBody] OrderDto orderDto)
         {
             if (id != orderDto.OrderID)
@@ -186,7 +186,7 @@ namespace Dotnet_Project.Controllers
         /// Supprimer une commande
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
             if (!await _orderRepository.ExistsAsync(id))
@@ -204,7 +204,7 @@ namespace Dotnet_Project.Controllers
         /// Marquer une commande comme livrée
         /// </summary>
         [HttpPatch("{id}/complete")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> CompleteOrder(int id)
         {
             var order = await _orderRepository.GetByIdAsync(id);
